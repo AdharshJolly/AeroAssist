@@ -1,0 +1,10 @@
+# About this file: tells Git which files NOT to track (Python cache folders,
+# virtual environments, editor settings), so only real source files are committed.
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store

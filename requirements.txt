@@ -1,0 +1,4 @@
+# About this file: lists the Python packages the project needs.
+# AeroAssist uses only the Python standard library (Python 3.10+, mainly the
+# built-in `re` module), so there is nothing to install. The file exists so
+# the project follows the usual layout; keep it free of packages.
