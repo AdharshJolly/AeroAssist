@@ -61,9 +61,6 @@ You only edit **your own** files: `members/member_N/<module>.py`, `members/membe
 3. Use named groups for values you want to show, e.g. `(?P<weight>\d{1,2})\s*kg`, then `{weight}` in the response.
 4. Try your questions live: `python main.py --debug`.
 
-Optional key `"lookups"` turns a captured value into text from a small static table (no live data), e.g.
-`"lookups": {"airline": {"from": "airline_code", "table": {"AI": "Air India"}}}` makes `{airline}` available (see Member 1).
-
 Intent schema:
 ```python
 {

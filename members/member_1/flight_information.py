@@ -21,19 +21,24 @@ HOW FLIGHT NUMBERS ARE HANDLED
   AI 2025) so ordinary text like "is 30 minutes" is not mistaken for one.
 
 DYNAMIC RESPONSES
-  AIRLINES is a small static table (airline prefix -> airline name). The
-  "lookups" key makes {airline} available in responses, so the answer can say
-  "Open the IndiGo app...". Unknown prefixes use the default wording. The
-  table is general knowledge, NOT live data, and can go out of date.
+  Captured groups ({flight_code}, {airline_code}, {flight_number}) are
+  inserted into the answers. Optional ones use a default ({flight_code|your flight}).
+
+NAMING THE AIRLINE
+  AIRLINES (below) maps a prefix to an airline name. At the bottom of the file
+  a small loop copies F05 and F02 once per airline (ids like "F02-6E"), with
+  the prefix written into the patterns and the name written into the response
+  ("Open IndiGo's app"). The original F05/F02 stay right after their copies as
+  the fallback for unknown prefixes ("Open your airline's app").
+  The table is general knowledge, NOT live data, and can go out of date.
 
 HONESTY RULE
   Responses never claim live flight data. They explain how to check, what to
   do next, and ask the passenger to confirm with the airline.
 """
 
-# Static, general-knowledge table: airline prefix -> airline name.
-# It is NOT live data and can go out of date (airlines merge or stop flying),
-# so the responses only say the prefix "usually belongs to" an airline.
+# Airline prefix -> airline name. Static, NOT live data; airlines merge or stop
+# flying, so check it from time to time.
 AIRLINES = {
     "AI": "Air India",
     "IX": "Air India Express",
@@ -41,27 +46,24 @@ AIRLINES = {
     "SG": "SpiceJet",
     "QP": "Akasa Air",
     "9I": "Alliance Air",
-    "UK": "Vistara (now merged into Air India)",
+    "UK": "Air India",  # Vistara merged into Air India; UK flights now run under Air India
 }
-
-# Optional intent key "lookups": after a pattern matches, the value of the group
-# `airline_code` is looked up in AIRLINES and made available as {airline}.
-AIRLINE_LOOKUP = {"airline": {"from": "airline_code", "table": AIRLINES}}
 
 # A flight code = airline code + 2 to 4 digits, e.g. AI2025, 6E123, UK955.
 # Nested named groups split it:  flight_code = airline_code + flight_number
 #   (?:[A-Z]{2}|\d[A-Z]|[A-Z]\d)  two letters (AI), digit+letter (6E) or letter+digit (G8)
 #   \d{2,4}                       then 2 to 4 digits
 #   \b ... \b                     whole token only (no AI20255, no xAI2025)
+ANY_AIRLINE_CODE = r"(?:[A-Z]{2}|\d[A-Z]|[A-Z]\d)"
 FLIGHT_CODE = (
-    r"\b(?P<flight_code>(?P<airline_code>(?:[A-Z]{2}|\d[A-Z]|[A-Z]\d))"
+    r"\b(?P<flight_code>(?P<airline_code>" + ANY_AIRLINE_CODE + r")"
     r"(?P<flight_number>\d{2,4}))\b"
 )
 
 # "flight AI2025", "flight number AI2025", "flight no. AI2025"
 FLIGHT_REF = r"\bflight\s+(?:(?:number|no\.?|code)\s+)?" + FLIGHT_CODE
 
-INTENTS = [
+_BASE_INTENTS = [
     # ------------------------------------------------------------------ F05
     {
         "id": "F05",
@@ -77,15 +79,13 @@ INTENTS = [
             r"\b(?:arrival|arriving)\s+terminal\b",
             r"\bwhich\s+terminal\b.*\b(?:arriv\w*|land\w*)\b",
         ],
-        # airline_code is only in some patterns, so {airline|...} has a default
-        "lookups": AIRLINE_LOOKUP,
         "response": (
             "Looking for the arrival terminal of {flight_code|your flight}? "
             "I do not have live flight data, so I cannot tell you the actual terminal. "
             "Here is how to find it:\n"
             "1. Check your booking confirmation or e-ticket; some airlines print the "
             "terminal there.\n"
-            "2. Open the {airline|airline's} app or website and look under flight status.\n"
+            "2. Open {airline|your airline}'s app or website and look under flight status.\n"
             "3. Look at the arrivals display screens once you reach the airport.\n"
             "4. Ask airline staff or the airport information desk.\n"
             "At airports with several terminals the terminal can depend on the airline "
@@ -106,14 +106,12 @@ INTENTS = [
             # just "flight AI2025"
             r"^\W*" + FLIGHT_REF + r"\W*$",
         ],
-        "lookups": AIRLINE_LOOKUP,
         "response": (
-            "You are enquiring about flight {flight_code}. The prefix {airline_code} "
-            "usually belongs to {airline|an airline I do not recognise}, and the flight "
-            "number is {flight_number}. "
+            "You are enquiring about flight {flight_code}. The airline prefix is "
+            "{airline_code} and the flight number is {flight_number}. "
             "I cannot access live flight information, so I cannot confirm its status. "
             "To check it:\n"
-            "1. Open the {airline|airline's} app or website, choose Flight Status and "
+            "1. Open {airline|your airline}'s app or website, choose Flight Status and "
             "enter {flight_number} with your travel date.\n"
             "2. Look for the flight on the display screens at the airport.\n"
             "3. Watch for SMS or email alerts from the airline.\n"
@@ -197,3 +195,26 @@ INTENTS = [
         ),
     },
 ]
+
+
+def _copy_per_airline(intent):
+    """One copy of `intent` per airline: prefix fixed in the patterns, name fixed in the response."""
+    copies = []
+    for code, name in AIRLINES.items():
+        patterns = [p.replace(ANY_AIRLINE_CODE, code) for p in intent["patterns"]
+                    if ANY_AIRLINE_CODE in p]  # patterns without a flight number need no copy
+        copies.append({
+            "id": f"{intent['id']}-{code}",
+            "name": intent["name"],
+            "patterns": patterns,
+            "response": intent["response"].replace("{airline|your airline}", name),
+        })
+    return copies
+
+
+# Airline-specific copies go BEFORE their generic intent (first match wins).
+INTENTS = []
+for _intent in _BASE_INTENTS:
+    if _intent["id"] in ("F05", "F02"):
+        INTENTS += _copy_per_airline(_intent)
+    INTENTS.append(_intent)

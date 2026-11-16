@@ -10,8 +10,6 @@ WHAT THIS FILE DOES
   Functions:
     required_placeholders  names a pattern MUST capture (used by the registry)
     clean_groups           drops unmatched groups, trims, upper-cases *_code
-    apply_lookups          adds values from a member's static table
-                           (airline_code "6E" -> airline "IndiGo")
     fill_template          re.sub() with a function that does the replacing
     wrap_text              wraps long lines for the terminal, keeps line breaks
     build_help             builds the help screen from the loaded intents
@@ -26,13 +24,9 @@ from chatbot import config
 PLACEHOLDER_RE = re.compile(r"\{(?P<name>\w+)(?:\|(?P<default>[^{}]*))?\}")
 
 
-def required_placeholders(template, provided=()):
-    """Names used in `template` that have NO default (so the pattern must capture them).
-
-    `provided` = names filled another way (the intent's "lookups"), so they are not required.
-    """
-    return [m["name"] for m in PLACEHOLDER_RE.finditer(template)
-            if m["default"] is None and m["name"] not in provided]
+def required_placeholders(template):
+    """Names used in `template` that have NO default (so the pattern must capture them)."""
+    return [m["name"] for m in PLACEHOLDER_RE.finditer(template) if m["default"] is None]
 
 
 def clean_groups(groupdict):
@@ -46,20 +40,6 @@ def clean_groups(groupdict):
             value = value.upper()
         cleaned[name] = value
     return cleaned
-
-
-def apply_lookups(groups, lookups):
-    """Add values found in a member's static table, e.g. airline_code 'AI' -> airline 'Air India'.
-
-    `lookups` = {"airline": {"from": "airline_code", "table": {"AI": "Air India", ...}}}
-    If the key is missing or not in the table, nothing is added (the template default is used).
-    """
-    enriched = dict(groups)
-    for name, spec in (lookups or {}).items():
-        value = spec["table"].get(groups.get(spec["from"], ""))
-        if value:
-            enriched[name] = value
-    return enriched
 
 
 def fill_template(template, groups):

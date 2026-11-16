@@ -7,7 +7,7 @@ WHAT THIS FILE DOES
     re.IGNORECASE. It checks: required fields (id, name, patterns, response),
     unique ids, valid regex, non-empty response and pattern list, patterns
     that would match empty text (too broad), and that every {placeholder} in
-    the response has a matching (?P<name>...) group (or a default, or a lookup).
+    the response has a matching (?P<name>...) group (or a default).
   * Skips intents marked "active": False (placeholders).
   * Collects ALL problems into one RegistryError that names the member, the
     intent id and the pattern, so nothing fails silently.
@@ -16,10 +16,6 @@ WHAT THIS FILE DOES
 HOW MEMBERS INTERACT
   Members never edit this file. Adding a member module = one import line and
   one line in MEMBER_SOURCES.
-
-OPTIONAL "lookups" KEY
-  An intent may define {"airline": {"from": "airline_code", "table": {...}}}.
-  The engine then fills {airline} from a static table (see Member 1).
 """
 
 import re
@@ -57,7 +53,6 @@ class Intent:
     module: str
     patterns: list = field(default_factory=list)  # compiled re.Pattern objects
     response: str = ""
-    lookups: dict = field(default_factory=dict)  # optional static tables (see response_handler)
 
 
 def _check_intent(raw, where, label):
@@ -71,24 +66,10 @@ def _check_intent(raw, where, label):
     if problems:
         return problems, compiled
 
-    if not isinstance(raw["name"], str) or not raw["name"].strip():
-        problems.append(f"{label}: 'name' must be a non-empty string")
-
     response = raw["response"]
     if not isinstance(response, str) or not response.strip():
         problems.append(f"{label}: 'response' must be a non-empty string")
         response = ""
-
-    lookups = raw.get("lookups", {})
-    if not isinstance(lookups, dict):
-        problems.append(f"{label}: 'lookups' must be a dictionary")
-        lookups = {}
-    for lookup_name, spec in lookups.items():
-        if not (isinstance(spec, dict) and isinstance(spec.get("from"), str)
-                and isinstance(spec.get("table"), dict)):
-            problems.append(f"{label}: lookup '{lookup_name}' needs {{'from': group_name, 'table': {{...}}}}")
-            lookups = {}
-            break
 
     patterns = raw["patterns"]
     if not isinstance(patterns, list) or not patterns:
@@ -96,9 +77,6 @@ def _check_intent(raw, where, label):
         return problems, compiled
 
     for pattern in patterns:
-        if not isinstance(pattern, str):
-            problems.append(f"{label}: pattern {pattern!r} is not a string")
-            continue
         try:
             regex = re.compile(pattern, re.IGNORECASE)
         except re.error as error:
@@ -107,21 +85,13 @@ def _check_intent(raw, where, label):
         if regex.search(""):
             problems.append(f"{label}: pattern {pattern!r} matches empty text (too broad)")
             continue
-        for name in required_placeholders(response, provided=lookups):
+        for name in required_placeholders(response):
             if name not in regex.groupindex:
                 problems.append(
                     f"{label}: response uses {{{name}}} but pattern {pattern!r} has no "
                     f"named group (?P<{name}>...). Add the group or use {{{name}|default}}."
                 )
         compiled.append(regex)
-    # A lookup may read an OPTIONAL group, but at least one pattern must define it
-    # (otherwise it is probably a typo and could never work).
-    for lookup_name, spec in lookups.items():
-        if compiled and not any(spec["from"] in regex.groupindex for regex in compiled):
-            problems.append(
-                f"{label}: lookup '{lookup_name}' reads group '{spec['from']}' "
-                f"but no pattern defines (?P<{spec['from']}>...)"
-            )
     return problems, compiled
 
 
@@ -163,7 +133,7 @@ def build_registry(sources=None):
             problems.extend(intent_problems)
             if not intent_problems:
                 registry.append(Intent(intent_id, raw["name"], member, title, compiled,
-                                       raw["response"], raw.get("lookups", {})))
+                                       raw["response"]))
 
     if problems:
         raise RegistryError(

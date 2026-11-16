@@ -10,7 +10,7 @@ WHAT THIS FILE DOES
          Member 1 -> 4, then the order of each member's INTENTS list,
          then the order of each intent's patterns.
     4. The named groups of the match (e.g. flight_code) are extracted,
-       cleaned, optionally enriched by the intent's lookups, and inserted
+       cleaned and inserted
        into the response template.
     5. No match -> the fixed default response.
 
@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from chatbot import config
 from chatbot.preprocessor import preprocess
 from chatbot.registry import MEMBER_SOURCES, build_registry
-from chatbot.response_handler import apply_lookups, build_help, clean_groups, fill_template
+from chatbot.response_handler import build_help, clean_groups, fill_template
 
 # Compiled once. re.match() is used because commands must START the text.
 GREETING_RE = re.compile(config.GREETING_PATTERN, re.IGNORECASE)
@@ -64,7 +64,7 @@ class ChatEngine:
     def help_text(self):
         topics = []
         for _, title, _ in MEMBER_SOURCES:
-            names = [i.name for i in self.intents if i.module == title]
+            names = list(dict.fromkeys(i.name for i in self.intents if i.module == title))
             topics.append((title, names))
         return build_help(topics)
 
@@ -89,7 +89,7 @@ class ChatEngine:
             return Reply("default", config.DEFAULT_RESPONSE, query)
 
         intent, match = found
-        groups = apply_lookups(clean_groups(match.groupdict()), intent.lookups)
+        groups = clean_groups(match.groupdict())
         text = fill_template(intent.response, groups)
         return Reply("intent", text, query, intent.id, intent.name, intent.module, groups)
 
