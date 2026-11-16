@@ -7,7 +7,7 @@ A rule-based NLP chatbot for Indian airport passenger assistance, built with Pyt
 ## Problem statement
 First-time flyers often struggle with airport procedures: flight information, check-in, baggage rules, security screening, boarding and facilities. AeroAssist answers these general questions in a command-line conversation. It identifies the question with regular expressions, extracts details (e.g. a flight number) with capturing groups and fills them into predefined responses.
 
-It gives **general guidance only**. It has no live flight data and never claims to; baggage/security answers should be confirmed with the airline or airport.
+It gives **general guidance only**. It has no live flight data and never claims to; baggage/security answers should be confirmed with the airline or airport. For demonstration, Member 1 also keeps a small **demo flight database** (made-up sample flights); answers from it always say they are demo data.
 
 ## Features
 - Intent detection with `re.search()`; greetings, help and exit with `re.match()`
@@ -15,6 +15,7 @@ It gives **general guidance only**. It has no live flight data and never claims 
 - Named capturing groups → dynamic responses (`{flight_code}`)
 - Four independent member modules, validated at startup with clear error messages
 - `--debug` mode showing matched intent id and module
+- Demo flight database: sample flights (`AI2025`, `6E123`, ...) get route, times, status, gate and terminal
 - Standard library only, Python 3.10+
 
 ## Run
@@ -53,6 +54,27 @@ Order = Member 1 → 4, then the order of each member's `INTENTS` list, then the
 - `{flight_code}` – replaced by the named group; the pattern **must** define `(?P<flight_code>…)` in every pattern of that intent (checked at startup).
 - `{flight_code|your flight}` – optional information; the text after `|` is used when the group did not match.
 
+### Demo flight database (Member 1)
+`FLIGHTS` in `members/member_1/flight_information.py` is a small dictionary of made-up flights. Asking about a flight in it (F02 status, F05 arrival terminal) gives real details from the table; the answer ends with "Demo data from a sample schedule, not live". Flights not in the table get the generic "how to check" answer. To add a flight, add one row to `FLIGHTS`:
+```python
+"AI2025": {"from": "Delhi (DEL)", "to": "Mumbai (BOM)", "dep": "06:30", "arr": "08:40",
+           "status": "On time", "note": "", "gate": "12", "arr_terminal": "Terminal 2"},
+```
+Try: `status of flight 6E123`, `which terminal will flight AI2025 arrive at?`, `status of flight IX312` (cancelled).
+
+### Baggage questions (Member 3)
+Member 3's five intents are checked in the order B05 → B04 → B03 → B01 → B02, so the specific ones win (a laptop question is B03 even if it says "cabin baggage").
+
+| ID | Intent | Try |
+|---|---|---|
+| B01 | Cabin Baggage Allowance | `What is the cabin baggage allowance?` / `is carry-on size limited` |
+| B02 | Check-in Baggage Allowance | `How much luggage can I check in?` / `what is the excess baggage fee` |
+| B03 | Laptop and Electronics | `Can I carry a laptop in my cabin baggage?` / `can I carry a power bank` |
+| B04 | Liquid Restrictions | `Can I carry liquids in my hand luggage?` / `can I bring water in my bag` |
+| B05 | Lost Baggage | `What should I do if my luggage is lost?` / `my bag is damaged` |
+
+Answers are general guidance only; confirm with your airline.
+
 ## How each member adds their five questions
 You only edit **your own** files: `members/member_N/<module>.py`, `members/member_N/questions.md`.
 
@@ -88,4 +110,6 @@ You: what happens if my flight gets cancelled?; arrival terminal for flight 6e12
 
 ## Project status
 - Member 1: implemented (F01–F05).
-- Members 2–4: placeholders (C01–C05, B01–B05, S01–S05), inactive until completed.
+- Member 2: implemented (C01–C05).
+- Member 3: implemented (B01–B05).
+- Member 4: placeholders (S01–S05), inactive until completed.
