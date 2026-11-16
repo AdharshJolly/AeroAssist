@@ -32,9 +32,16 @@ NAMING THE AIRLINE
   the fallback for unknown prefixes ("Open your airline's app").
   The table is general knowledge, NOT live data, and can go out of date.
 
+DEMO FLIGHT DATABASE
+  FLIGHTS (below) is a small made-up sample schedule. For each flight in it, F02
+  and F05 are copied once more (ids like "F02-6E123") with the exact flight code
+  in the patterns and the real details in the answer. Flights NOT in FLIGHTS
+  get the "how to check" answer. To add a flight, add one row to FLIGHTS.
+
 HONESTY RULE
-  Responses never claim live flight data. They explain how to check, what to
-  do next, and ask the passenger to confirm with the airline.
+  Flights in FLIGHTS are answered from the sample schedule and every such answer
+  says it is demo data. Everything else explains how to check, what to do next,
+  and asks the passenger to confirm with the airline. Nothing claims live data.
 """
 
 # Airline prefix -> airline name. Static, NOT live data; airlines merge or stop
@@ -48,6 +55,28 @@ AIRLINES = {
     "9I": "Alliance Air",
     "UK": "Air India",  # Vistara merged into Air India; UK flights now run under Air India
 }
+
+# DEMO FLIGHT DATABASE - made-up sample schedule, NOT live data. Add or edit rows freely.
+# status: "On time", "Delayed", "Boarding", "Departed" or "Cancelled".
+# note: extra line shown after the status (use "" for none).
+FLIGHTS = {
+    "AI2025": {"from": "Delhi (DEL)", "to": "Mumbai (BOM)", "dep": "06:30", "arr": "08:40",
+               "status": "On time", "note": "", "gate": "12", "arr_terminal": "Terminal 2"},
+    "6E123": {"from": "Bengaluru (BLR)", "to": "Delhi (DEL)", "dep": "09:15", "arr": "12:05",
+              "status": "Delayed", "note": "Delayed by 40 minutes; new departure 09:55.",
+              "gate": "7", "arr_terminal": "Terminal 1"},
+    "SG456": {"from": "Hyderabad (HYD)", "to": "Chennai (MAA)", "dep": "14:20", "arr": "15:35",
+              "status": "On time", "note": "", "gate": "21", "arr_terminal": "Terminal 1"},
+    "QP1101": {"from": "Pune (PNQ)", "to": "Bengaluru (BLR)", "dep": "11:05", "arr": "12:25",
+               "status": "Boarding", "note": "Boarding closes 20 minutes before departure.",
+               "gate": "4", "arr_terminal": "Terminal 1"},
+    "UK955": {"from": "Mumbai (BOM)", "to": "Delhi (DEL)", "dep": "07:00", "arr": "09:10",
+              "status": "Departed", "note": "", "gate": "9", "arr_terminal": "Terminal 3"},
+    "IX312": {"from": "Kolkata (CCU)", "to": "Bhubaneswar (BBI)", "dep": "16:45", "arr": "17:50",
+              "status": "Cancelled", "note": "Please contact the airline about rebooking or a refund.",
+              "gate": "-", "arr_terminal": "-"},
+}
+DEMO_NOTE = "(Demo data from a sample schedule, not live. Always confirm with your airline.)"
 
 # A flight code = airline code + 2 to 4 digits, e.g. AI2025, 6E123, UK955.
 # Nested named groups split it:  flight_code = airline_code + flight_number
@@ -214,9 +243,41 @@ def _copy_per_airline(intent):
     return copies
 
 
-# Airline-specific copies go BEFORE their generic intent (first match wins).
+def _flight_answer(intent_id, code, f):
+    """Answer text for one flight in FLIGHTS."""
+    airline = AIRLINES.get(code[:2].upper(), "your airline")
+    if intent_id == "F05":
+        if f["status"] == "Cancelled":
+            body = f"Flight {code} ({airline}) is cancelled in the sample schedule, so it has no arrival terminal."
+        else:
+            body = (f"Flight {code} ({airline}) is listed to arrive at {f['to']}, "
+                    f"{f['arr_terminal']}, at {f['arr']}.")
+        return body + "\n" + DEMO_NOTE
+    lines = [f"Flight {code} ({airline}): {f['from']} to {f['to']}.",
+             f"Departs {f['dep']}, arrives {f['arr']}.",
+             f"Status: {f['status']}."]
+    if f["note"]:
+        lines.append(f["note"])
+    if f["gate"] != "-":
+        lines.append(f"Departure gate: {f['gate']}. Arrival: {f['arr_terminal']}.")
+    return "\n".join(lines + [DEMO_NOTE])
+
+
+def _copy_per_flight(intent):
+    """One copy of `intent` per flight in FLIGHTS: exact code in the patterns, real details in the answer."""
+    copies = []
+    for code, f in FLIGHTS.items():
+        patterns = [p.replace(FLIGHT_CODE, r"\b" + code + r"\b") for p in intent["patterns"]
+                    if FLIGHT_CODE in p]
+        copies.append({"id": f"{intent['id']}-{code}", "name": intent["name"],
+                       "patterns": patterns, "response": _flight_answer(intent["id"], code, f)})
+    return copies
+
+
+# Most specific first (first match wins): exact flight, then airline, then generic.
 INTENTS = []
 for _intent in _BASE_INTENTS:
     if _intent["id"] in ("F05", "F02"):
+        INTENTS += _copy_per_flight(_intent)
         INTENTS += _copy_per_airline(_intent)
     INTENTS.append(_intent)
