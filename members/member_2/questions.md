@@ -1,16 +1,15 @@
 # Member 2 – Check-in & Boarding (`C01`–`C05`)
 
-> **About this file:** the list of the five questions owned by Member 2 (Check-in & Boarding): for each one, the question text, the intent id and a few example phrasings the patterns should cover. Written and maintained only by this member.
+> **About this file:** the list of the five questions owned by Member 2 (Check-in & Boarding): for each one, the question text, the intent id and a few example phrasings the patterns cover. Written and maintained only by this member.
 
-Status: **TODO** – placeholders only (`"active": False`).
+Status: **implemented** in `checkin_boarding.py`.
 
-| ID | Intent | Question | Alternative phrasing | Extracted info |
+| ID | Intent | Question | Alternative phrasing | Extracted info (named groups) |
 |---|---|---|---|---|
-| C01 | Check-in Procedure | TODO | TODO | TODO |
-| C02 | Web Check-in | TODO | TODO | TODO |
-| C03 | Boarding Pass | TODO | TODO | TODO |
-| C04 | Boarding Time | TODO | TODO | TODO |
-| C05 | Missed Check-in Deadline | TODO | TODO | TODO |
+| C01 | Check-in Procedure | How early should I reach the airport? | When should I get to the airport?; what time should I be at the airport; what time does the check-in counter open? | `action`, `flight_type` |
+| C02 | Web Check-in | How can I complete web check-in? | online check-in for IndiGo; mobile check-in | `mode`, `airline` (known airline names only) |
+| C03 | Boarding Pass | What is a boarding pass? | what is a digital boarding pass; boarding pass | `pass_type` |
+| C04 | Boarding Time | When does boarding usually begin? | when should I board; boarding time for international flights | `flight_type` |
+| C05 | Missed Check-in Deadline | What happens if I miss my check-in deadline? | I am late for check-in; check-in closed | `cutoff_type` |
 
-When a row is done, implement it in the module file and remove `"active": False`.
-Full write-up: copy `docs/member_documentation_template.md` and fill it in.
+Match order (first match wins): C05 → C02 → C03 → C04 → C01.
