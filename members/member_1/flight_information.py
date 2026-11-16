@@ -99,6 +99,8 @@ _BASE_INTENTS = [
         "patterns": [
             # "status of flight AI2025", "details about flight AI2025"
             r"\b(?:status|updates?|information|info|details?)\b.{0,25}?" + FLIGHT_REF,
+            # "how can I check my flight status for 6E123" (no word "flight" before the code)
+            r"\b(?:status|updates?|information|info|details?)\b.{0,25}?\b(?:for|of|on)\s+" + FLIGHT_CODE,
             # "check flight AI2025", "is flight AI2025 on time", "where is my flight AI2025"
             r"\b(?:check|track|is|has)\s+(?:my\s+)?" + FLIGHT_REF,
             # "flight AI2025 status", "flight AI2025 delayed?"
