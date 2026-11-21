@@ -70,6 +70,8 @@ INTENTS = [
             r"\b(?:what is the|is there a) power bank (?:capacity )?limit\b",
             r"\b(?:is )?(?P<capacity>\d+\s*(?:mah|mAh|wh|Wh)) power bank allowed\b",
             r"\bpower bank (?:flight|airline) rules\b",
+            # any other power bank question
+            r"\bpower[\s-]?banks?\b",
         ],
         "response": (
             "Power banks must generally be carried in cabin/hand baggage and "
@@ -119,6 +121,8 @@ INTENTS = [
             r"\bi cannot find (?:my )?(?P<item>bag|luggage|phone|wallet|passport|handbag)\b",
             r"\bwhat should i do if i lose something at the airport\b",
             r"\b(?:lost|missing) (?:my )?(?P<item>belongings|baggage|luggage|personal item)\b",
+            # "is there a lost and found", "lost & found office"
+            r"\blost\s*(?:and|&)\s*found\b",
         ],
         "response": (
             "If you have lost an item at the airport, contact the airport's "
