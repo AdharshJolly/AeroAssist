@@ -112,4 +112,4 @@ You: what happens if my flight gets cancelled?; arrival terminal for flight 6e12
 - Member 1: implemented (F01–F05).
 - Member 2: implemented (C01–C05).
 - Member 3: implemented (B01–B05).
-- Member 4: placeholders (S01–S05), inactive until completed.
+- Member 4: implemented (S01–S05).
