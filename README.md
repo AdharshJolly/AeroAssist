@@ -69,7 +69,7 @@ Member 3's five intents are checked in the order B05 → B04 → B03 → B01 →
 |---|---|---|
 | B01 | Cabin Baggage Allowance | `What is the cabin baggage allowance?` / `is carry-on size limited` |
 | B02 | Check-in Baggage Allowance | `How much luggage can I check in?` / `what is the excess baggage fee` |
-| B03 | Laptop and Electronics | `Can I carry a laptop in my cabin baggage?` / `can I carry a power bank` |
+| B03 | Laptop and Electronics | `Can I carry a laptop in my cabin baggage?` |
 | B04 | Liquid Restrictions | `Can I carry liquids in my hand luggage?` / `can I bring water in my bag` |
 | B05 | Lost Baggage | `What should I do if my luggage is lost?` / `my bag is damaged` |
 

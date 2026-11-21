@@ -79,8 +79,6 @@ INTENTS = [
         "patterns": [
             # laptops: "laptop", "macbook"
             r"\b(?:laptops?|macbooks?|ipads?)\b",
-            # other electronics: "power bank", "powerbank", "camera", "charger"
-            r"\bpower[\s-]?banks?\b",
             # camera/charger/gadget only count when a carrying word is nearby
             r"\b(?:cameras?|chargers?|electronics?|gadgets?)\b.{0,25}\b(?:carry|bring|take|pack|allowed|cabin|hand|baggage|luggage|flight)\b",
             r"\b(?:carry|bring|take|pack)\b.{0,25}\b(?:cameras?|chargers?|electronics?|gadgets?)\b",
@@ -88,9 +86,7 @@ INTENTS = [
         "response": (
             "Yes, you can generally carry a laptop and other electronics in "
             "your cabin baggage. It is recommended to keep them in your hand "
-            "luggage rather than checked baggage. Power banks and spare "
-            "lithium batteries are usually allowed only in cabin baggage, not "
-            "in checked baggage. You may be asked to remove electronics "
+            "luggage rather than checked baggage. You may be asked to remove electronics "
             "separately during security screening. Please confirm any "
             "specific requirements with your airline and airport."
         ),
@@ -101,7 +97,8 @@ INTENTS = [
         "name": "Cabin Baggage Allowance",
         "patterns": [
             # "cabin bag", "hand luggage", "carry-on baggage"
-            r"\b(?:cabin|hand|carry[\s-]?on|onboard)\s+(?:baggage|luggage|bags?)\b",
+            # (skipped when the question is about prohibited items: those go to Member 4)
+            r"^(?!.*\b(?:knife|knives|scissors|blades?|sharp|weapons?|prohibited|banned)\b).*?\b(?:cabin|hand|carry[\s-]?on|onboard)\s+(?:baggage|luggage|bags?)\b",
             # "how many bags in the cabin", "how many bags can I carry on"
             r"\bhow\s+(?:many|much)\b.{0,25}\b(?:bags?|baggage|luggage)\b.{0,25}\b(?:cabin|carry[\s-]?on|on board)\b",
             # "carry-on size", "carry on limit" (but not "carry on with my trip")
@@ -120,7 +117,8 @@ INTENTS = [
         "name": "Check-in Baggage Allowance",
         "patterns": [
             # "checked bag", "check-in luggage", "hold baggage"
-            r"\b(?:check[\s-]?in|checked|hold)\s+(?:baggage|luggage|bags?)\b",
+            # (skipped for power bank questions: those go to Member 4)
+            r"^(?!.*\bpower[\s-]?banks?\b).*?\b(?:check[\s-]?in|checked|hold)\s+(?:baggage|luggage|bags?)\b",
             # "luggage I can check in", "baggage to be checked"
             r"\b(?:baggage|luggage|bags?|suitcases?)\b.{0,25}\bcheck(?:ed)?[\s-]?in\b",
             # general questions: "baggage allowance", "how much baggage can I carry"
